@@ -16,11 +16,19 @@ class CaseListScreen extends ConsumerStatefulWidget {
 
 class _CaseListScreenState extends ConsumerState<CaseListScreen> {
   final List<Map<String, dynamic>> _cases = [];
+  final TextEditingController _searchController = TextEditingController();
   int _page = 1;
   int _total = 0;
   bool _loading = true;
   bool _loadingMore = false;
   String? _error;
+  String _loadedSearch = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -39,6 +47,7 @@ class _CaseListScreenState extends ConsumerState<CaseListScreen> {
     }
 
     final requestedPage = reset ? 1 : _page + 1;
+    final search = _searchController.text.trim();
     try {
       final response = await ref
           .read(apiClientProvider)
@@ -49,6 +58,7 @@ class _CaseListScreenState extends ConsumerState<CaseListScreen> {
               'company_id': widget.companyId,
               'per_page': 25,
               'page': requestedPage,
+              if (search.isNotEmpty) 'search': search,
             },
           );
       final root = response.data;
@@ -67,6 +77,7 @@ class _CaseListScreenState extends ConsumerState<CaseListScreen> {
         );
         _page = requestedPage;
         _total = int.tryParse(meta['total']?.toString() ?? '') ?? _cases.length;
+        _loadedSearch = search;
         _error = null;
       });
     } on DioException catch (error) {
@@ -113,6 +124,32 @@ class _CaseListScreenState extends ConsumerState<CaseListScreen> {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          TextField(
+            controller: _searchController,
+            textInputAction: TextInputAction.search,
+            onChanged: (_) => setState(() {}),
+            onSubmitted: (_) => _loadPage(reset: true),
+            decoration: InputDecoration(
+              labelText: 'Search cases',
+              hintText: 'Case number or party name',
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: IconButton(
+                tooltip: _searchController.text.isEmpty
+                    ? 'Search'
+                    : 'Clear search',
+                onPressed: _searchController.text.isEmpty
+                    ? () => _loadPage(reset: true)
+                    : () {
+                        _searchController.clear();
+                        _loadPage(reset: true);
+                      },
+                icon: Icon(
+                  _searchController.text.isEmpty ? Icons.search : Icons.clear,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
           if (_loading) const LinearProgressIndicator(),
           if (_error != null)
             Card(
@@ -144,7 +181,8 @@ class _CaseListScreenState extends ConsumerState<CaseListScreen> {
                 ),
               ),
             ),
-          if (_cases.length < _total)
+          if (_loadedSearch == _searchController.text.trim() &&
+              _cases.length < _total)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 12),
               child: OutlinedButton.icon(

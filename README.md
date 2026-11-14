@@ -35,7 +35,7 @@ All successful responses use a `{ "data": ... }` JSON envelope. Protected reques
 | `POST auth/logout` | Revoke the current Sanctum token |
 | `GET me` | Return `{name, email}` for the token owner |
 | `GET companies` | Return only companies the user may type for; each row includes `id`, `company_name` |
-| `GET cases?company_id=…&per_page=5` | Return recent cases for the selected permitted company |
+| `GET cases?company_id=…&search=…&per_page=25` | Search and paginate cases for the selected permitted company |
 | `POST cases` | Accept `company_id` and the fields in the existing typing form; honor `Idempotency-Key`; return generated `id` and `nadu_ankaya` |
 | `PUT cases/{id}` | Update a case in the selected permitted company using the same validated typing form fields |
 | `POST attachments` | Authenticated multipart upload with `company_id`, `case_id`, and `file`; validate type, size, ownership and company access |
@@ -49,7 +49,7 @@ The server enforces typing-role access, active-company checks, validation, rate 
 - Authentication tokens are stored with `flutter_secure_storage` and removed at logout.
 - Case fields and picked attachments remain in memory for the open form only; there is no local case database, offline queue, background sync, or offline submission.
 - Case submission checks connectivity and requires a successful online response. A submit button lock prevents repeated taps; the server must enforce idempotency as well.
-- Recent cases and the full paginated case list can be opened in the existing entry form and updated online.
+- Recent cases and the searchable, paginated case list can be opened in the existing entry form and updated online.
 - The client uses HTTPS only and does not disable certificate validation.
 
 ## Remaining integration work
