@@ -73,7 +73,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       final response = await ref
           .read(apiClientProvider)
           .dio
-          .get('cases', queryParameters: {'per_page': 5});
+          .get(
+            'cases',
+            queryParameters: {'company_id': _companyId, 'per_page': 5},
+          );
       final root = response.data;
       final rows = root is Map ? (root['data'] ?? root['cases']) : root;
       final list = rows is List
@@ -174,7 +177,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     })
                     .where((item) => item.value != null)
                     .toList(),
-                onChanged: (value) => setState(() => _companyId = value),
+                onChanged: (value) {
+                  setState(() => _companyId = value);
+                  _loadRecentCases();
+                },
               ),
             const SizedBox(height: 18),
             FilledButton.icon(

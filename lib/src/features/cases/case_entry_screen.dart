@@ -51,9 +51,16 @@ class _CaseEntryScreenState extends ConsumerState<CaseEntryScreen> {
       source: ImageSource.camera,
       imageQuality: 85,
     );
-    if (image != null && mounted) {
-      setState(() => _attachments.add(_Attachment(image.name, image.path)));
+    if (image == null || !mounted) return;
+    final size = await File(image.path).length();
+    if (!mounted) return;
+    if (size > 10 * 1024 * 1024) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Attachments must be under 10 MB.')),
+      );
+      return;
     }
+    setState(() => _attachments.add(_Attachment(image.name, image.path)));
   }
 
   Future<void> _addFiles() async {
@@ -127,6 +134,7 @@ class _CaseEntryScreenState extends ConsumerState<CaseEntryScreen> {
         try {
           final form = FormData.fromMap({
             'case_id': data is Map ? data['id'] : null,
+            'company_id': widget.companyId,
             'file': await MultipartFile.fromFile(
               attachment.path,
               filename: attachment.name,

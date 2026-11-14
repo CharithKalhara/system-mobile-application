@@ -3,7 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 const apiBaseUrl = String.fromEnvironment(
   'API_BASE_URL',
-  defaultValue: 'https://nadu-api.invalid/api/v1/',
+  defaultValue: 'https://10.100.0.1/api/v1/',
 );
 
 class ApiClient {
