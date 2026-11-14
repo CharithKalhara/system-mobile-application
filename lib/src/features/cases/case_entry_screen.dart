@@ -11,8 +11,16 @@ import 'package:intl/intl.dart';
 import '../../core/providers.dart';
 
 class CaseEntryScreen extends ConsumerStatefulWidget {
-  const CaseEntryScreen({super.key, required this.companyId});
+  const CaseEntryScreen({
+    super.key,
+    required this.companyId,
+    this.caseId,
+    this.initialData,
+  });
+
   final int companyId;
+  final int? caseId;
+  final Map<String, dynamic>? initialData;
 
   @override
   ConsumerState<CaseEntryScreen> createState() => _CaseEntryScreenState();
@@ -25,6 +33,24 @@ class _CaseEntryScreenState extends ConsumerState<CaseEntryScreen> {
   };
   final List<_Attachment> _attachments = [];
   bool _submitting = false;
+
+  bool get _isEditing => widget.caseId != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final data = widget.initialData;
+    if (data == null) return;
+    for (final field in _caseFields) {
+      final value = data[field.key];
+      if (value == null) continue;
+      var text = value.toString();
+      if (field.key == 'dun_dinaya' || field.key == 'awasan_mudal_bendima') {
+        text = text.length >= 10 ? text.substring(0, 10) : text;
+      }
+      _controllers[field.key]!.text = text;
+    }
+  }
 
   @override
   void dispose() {
@@ -109,19 +135,19 @@ class _CaseEntryScreenState extends ConsumerState<CaseEntryScreen> {
         final value = _controllers[field.key]!.text.trim();
         if (value.isNotEmpty) values[field.key] = value;
       }
-      final response = await ref
-          .read(apiClientProvider)
-          .dio
-          .post(
-            'cases',
-            data: values,
-            options: Options(
-              headers: {
-                'Idempotency-Key': DateTime.now().microsecondsSinceEpoch
-                    .toString(),
-              },
-            ),
-          );
+      final dio = ref.read(apiClientProvider).dio;
+      final response = _isEditing
+          ? await dio.put('cases/${widget.caseId}', data: values)
+          : await dio.post(
+              'cases',
+              data: values,
+              options: Options(
+                headers: {
+                  'Idempotency-Key': DateTime.now().microsecondsSinceEpoch
+                      .toString(),
+                },
+              ),
+            );
       final root = response.data;
       final data = root is Map && root['data'] is Map
           ? root['data'] as Map
@@ -160,7 +186,11 @@ class _CaseEntryScreenState extends ConsumerState<CaseEntryScreen> {
             size: 42,
           ),
           title: Text(
-            uploadProblem ? 'Case saved with upload issue' : 'Case submitted',
+            uploadProblem
+                ? 'Case saved with upload issue'
+                : _isEditing
+                ? 'Case updated'
+                : 'Case submitted',
           ),
           content: Text(
             uploadProblem
@@ -204,7 +234,7 @@ class _CaseEntryScreenState extends ConsumerState<CaseEntryScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('New case entry')),
+    appBar: AppBar(title: Text(_isEditing ? 'Edit case' : 'New case entry')),
     body: Form(
       key: _formKey,
       child: ListView(
@@ -250,7 +280,7 @@ class _CaseEntryScreenState extends ConsumerState<CaseEntryScreen> {
                     height: 22,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Text('Submit case'),
+                : Text(_isEditing ? 'Save changes' : 'Submit case'),
           ),
         ],
       ),

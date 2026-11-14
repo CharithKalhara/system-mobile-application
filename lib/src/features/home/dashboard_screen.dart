@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers.dart';
 import '../auth/session_controller.dart';
 import '../cases/case_entry_screen.dart';
+import '../cases/case_list_screen.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -98,6 +99,34 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         setState(() => _recentError = 'Recent submissions are unavailable.');
       }
     }
+  }
+
+  Future<void> _editCase(Map<String, dynamic> record) async {
+    final caseId = int.tryParse(record['id']?.toString() ?? '');
+    final companyId = _companyId;
+    if (caseId == null || companyId == null) return;
+
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => CaseEntryScreen(
+          companyId: companyId,
+          caseId: caseId,
+          initialData: record,
+        ),
+      ),
+    );
+    if (mounted) _loadRecentCases();
+  }
+
+  Future<void> _openAllCases() async {
+    final companyId = _companyId;
+    if (companyId == null) return;
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => CaseListScreen(companyId: companyId),
+      ),
+    );
+    if (mounted) _loadRecentCases();
   }
 
   @override
@@ -198,11 +227,23 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ),
             ),
             const SizedBox(height: 26),
-            Text(
-              'Recent submissions',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    'Recent submissions',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: _companyId == null ? null : _openAllCases,
+                  icon: const Icon(Icons.list_alt_outlined),
+                  label: const Text('View all'),
+                ),
+              ],
             ),
             const SizedBox(height: 8),
             if (_recentError != null)
@@ -223,7 +264,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     record['nadu_ankaya']?.toString() ?? 'Case record',
                   ),
                   subtitle: Text(record['created_at']?.toString() ?? ''),
-                  trailing: Text(record['id']?.toString() ?? ''),
+                  onTap: () => _editCase(record),
+                  trailing: IconButton(
+                    tooltip: 'Edit case',
+                    onPressed: () => _editCase(record),
+                    icon: const Icon(Icons.edit_outlined),
+                  ),
                 ),
               ),
             const SizedBox(height: 24),
